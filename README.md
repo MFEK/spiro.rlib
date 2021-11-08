@@ -5,6 +5,7 @@ This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Ru
 ## License (this edit of C2Rust output)
 ```
 Copyright (C) 2020–2021 Fredrick R. Brennan
+Copyright (C) 2007 Raph Levien
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this software or any of the provided source code files except in compliance
