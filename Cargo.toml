@@ -1,0 +1,10 @@
+[package]
+name = "spiro-inner"
+version = "0.1.0"
+authors = ["Fredrick Brennan <copypaste@kittens.ph>", "Raph Levien <raph.levien@gmail.com>"]
+edition = "2018"
+description = "Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
