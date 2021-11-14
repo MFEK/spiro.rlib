@@ -3,14 +3,14 @@ use crate::BezierContext;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
-    MoveTo(f64, f64),
+    MoveTo(f64, f64, bool),
     LineTo(f64, f64),
     CurveTo(f64, f64, f64, f64, f64, f64),
     MarkKnot(usize),
 }
 
-pub fn move_to(ctx: &mut BezierContext<Vec<Operation>>, x: f64, y: f64, _is_open: bool) {
-    ctx.data.as_mut().map(|v| v.push(Operation::MoveTo(x, y)));
+pub fn move_to(ctx: &mut BezierContext<Vec<Operation>>, x: f64, y: f64, is_open: bool) {
+    ctx.data.as_mut().map(|v| v.push(Operation::MoveTo(x, y, is_open)));
 }
 pub fn line_to(ctx: &mut BezierContext<Vec<Operation>>, x: f64, y: f64) {
     ctx.data.as_mut().map(|v| v.push(Operation::LineTo(x, y)));
