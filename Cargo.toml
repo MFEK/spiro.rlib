@@ -8,3 +8,4 @@ description = "Raph Levien's C implementation of Spiro in pure Rust, transpiled 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+log = "0.4"
