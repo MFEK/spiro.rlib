@@ -16,4 +16,10 @@ pub fn mark_knot(_: &mut BezierContext<()>, knot_idx: usize) {
     println!("% {} knot", knot_idx);
 }
 
-pub static mut POSTSCRIPT_BEZCTX: BezierContext<()> = BezierContext { move_fn: move_to, line_fn: line_to, curve_fn: curve_to, mark_knot_fn: mark_knot, data: None };
+pub static mut POSTSCRIPT_BEZCTX: BezierContext<()> = BezierContext {
+    move_fn: move_to,
+    line_fn: line_to,
+    curve_fn: curve_to,
+    mark_knot_fn: mark_knot,
+    data: None,
+};

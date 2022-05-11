@@ -1,6 +1,7 @@
+use std::alloc::{alloc, dealloc, Layout};
 /// spiro-rs ::: inner.rs
 ///
-/// (c) 2020–2021 Fredrick R. Brennan, based on source code by Raph Levien. 
+/// (c) 2020–2021 Fredrick R. Brennan, based on source code by Raph Levien.
 ///
 /// Licensed under same license as Raph Levien's libspiro, upon which this code is based. This code
 /// was transpiled with C2Rust, which I then spent hours and hours cleaning up, removing the
@@ -12,13 +13,11 @@
 /// are really beyond my understanding, and I felt that it'd be way too hard for me to come up with
 /// a brand new implementation. Overall I think it turned out okay, could definitely be better if
 /// someone wants to contribute to removing all the unsafe blocks.
-
 use std::convert::TryInto as _;
-use std::{mem, ptr::copy_nonoverlapping as memcpy, ptr};
-use std::alloc::{alloc, dealloc, Layout};
+use std::{mem, ptr, ptr::copy_nonoverlapping as memcpy};
 
-pub mod bezctx_ps;
 pub mod bezctx_oplist;
+pub mod bezctx_ps;
 use bezctx_oplist::Operation;
 
 #[derive(Copy, Clone)]
@@ -253,8 +252,7 @@ pub unsafe fn compute_pderivs(
         while k < 2 {
             j = 0;
             while j < 4 {
-                (derivs[j])[k][i] =
-                    recip_d * (try_ends[k][j] - (ends[k])[j]);
+                (derivs[j])[k][i] = recip_d * (try_ends[k][j] - (ends[k])[j]);
                 j += 1
             }
             k += 1
@@ -269,11 +267,7 @@ fn mod2pi(th: f64) -> f64 {
     return 2. * PI * (u - (u + 0.5).floor());
 }
 
-pub unsafe fn setup_path(
-    src: *const SpiroCP,
-    mut n: isize,
-    l: &mut Layout,
-) -> *mut SpiroSegment {
+pub unsafe fn setup_path(src: *const SpiroCP, mut n: isize, l: &mut Layout) -> *mut SpiroSegment {
     let n_orig = n;
 
     if n == 0 {
@@ -578,14 +572,94 @@ pub unsafe fn spiro_iter(
             jk2r = (jj + 3) % nmat
         }
 
-        add_mat_line(m,v,derivs[0][0].as_mut_ptr(),th - ends[0][0],1.,j,jthl,jinc,nmat);
-        add_mat_line(m,v,derivs[1][0].as_mut_ptr(),ends[0][1],-1.,j,jk0l,jinc,nmat);
-        add_mat_line(m,v,derivs[2][0].as_mut_ptr(),ends[0][2],-1.,j,jk1l,jinc,nmat);
-        add_mat_line(m,v,derivs[3][0].as_mut_ptr(),ends[0][3],-1.,j,jk2l,jinc,nmat);
-        add_mat_line(m,v,derivs[0][1].as_mut_ptr(),-ends[1][0],1.,j,jthr,jinc,nmat);
-        add_mat_line(m,v,derivs[1][1].as_mut_ptr(),-ends[1][1],1.,j,jk0r,jinc,nmat);
-        add_mat_line(m,v,derivs[2][1].as_mut_ptr(),-ends[1][2],1.,j,jk1r,jinc,nmat);
-        add_mat_line(m,v,derivs[3][1].as_mut_ptr(),-ends[1][3],1.,j,jk2r,jinc,nmat);
+        add_mat_line(
+            m,
+            v,
+            derivs[0][0].as_mut_ptr(),
+            th - ends[0][0],
+            1.,
+            j,
+            jthl,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[1][0].as_mut_ptr(),
+            ends[0][1],
+            -1.,
+            j,
+            jk0l,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[2][0].as_mut_ptr(),
+            ends[0][2],
+            -1.,
+            j,
+            jk1l,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[3][0].as_mut_ptr(),
+            ends[0][3],
+            -1.,
+            j,
+            jk2l,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[0][1].as_mut_ptr(),
+            -ends[1][0],
+            1.,
+            j,
+            jthr,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[1][1].as_mut_ptr(),
+            -ends[1][1],
+            1.,
+            j,
+            jk0r,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[2][1].as_mut_ptr(),
+            -ends[1][2],
+            1.,
+            j,
+            jk1r,
+            jinc,
+            nmat,
+        );
+        add_mat_line(
+            m,
+            v,
+            derivs[3][1].as_mut_ptr(),
+            -ends[1][3],
+            1.,
+            j,
+            jk2r,
+            jinc,
+            nmat,
+        );
 
         j += jinc;
         i += 1
@@ -739,7 +813,9 @@ pub unsafe fn free_spiro(s: *mut SpiroSegment, l: Layout) {
 }
 
 pub unsafe fn spiro_to_bpath<T>(s: *const SpiroSegment, n: isize, bc: &mut BezierContext<T>) {
-    if n == 0 { return }
+    if n == 0 {
+        return;
+    }
     let mut i = 0;
     let nsegs: isize = if (*s.offset(n - 1)).ty == '}' {
         (n) - 1
