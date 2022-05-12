@@ -82,21 +82,16 @@ fn test_curve() {
             ty: 'c',
         },
     ];
-    let mut segs: *mut SpiroSegment = ptr::null_mut();
+    let mut segs = Vec::new();
     let mut i = 0;
-    let mut l: Layout = Layout::new::<SpiroSegment>(); // needed to free *SpiroSegment
 
     const TEST_ITERATIONS: usize = 1_000;
     let path_len = path.len().try_into().unwrap();
     while i < TEST_ITERATIONS {
         unsafe {
-            segs = setup_path(path.as_mut_ptr(), path_len, &mut l);
-            solve_spiro(segs, path.len().try_into().unwrap());
+            segs = setup_path(&path);
+            solve_spiro(segs.as_mut_ptr(), path.len().try_into().unwrap());
             i += 1;
-            // Don't free Spiro on last test iteration, so we can print it out.
-            if i < TEST_ITERATIONS {
-                free_spiro(segs, l);
-            }
         }
     }
 
@@ -104,8 +99,7 @@ fn test_curve() {
 
     println!("100 800 translate 1 -1 scale 1 setlinewidth");
     unsafe {
-        spiro_to_bpath(segs, path_len, &mut bezctx_ps::POSTSCRIPT_BEZCTX);
-        free_spiro(segs, l);
+        spiro_to_bpath(segs.as_mut_ptr(), path_len, &mut bezctx_ps::POSTSCRIPT_BEZCTX);
     }
     println!("stroke");
     println!("showpage");

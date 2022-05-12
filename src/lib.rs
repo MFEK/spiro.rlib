@@ -77,7 +77,7 @@ except according to those terms.
 
 */
 /* C implementation of third-order polynomial spirals. */
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct SpiroSegment {
     x: f64,
     y: f64,
@@ -226,8 +226,8 @@ pub fn compute_ends(ks: [f64; 4], ends: &mut [[f64; 4]; 2], seg_ch: f64) -> f64 
     return l;
 }
 
-pub unsafe fn compute_pderivs(
-    s: *const SpiroSegment,
+pub fn compute_pderivs(
+    s: &SpiroSegment,
     ends: &mut [[f64; 4]; 2],
     derivs: &mut [[[f64; 4]; 2]; 4],
     jinc: isize,
@@ -239,15 +239,15 @@ pub unsafe fn compute_pderivs(
     let mut i: usize = 0;
     let mut j;
     let mut k;
-    compute_ends((*s).ks, ends, (*s).seg_ch);
+    compute_ends(s.ks, ends, s.seg_ch);
     while (i as isize) < jinc {
         j = 0;
         while j < 4 {
-            try_ks[j] = (*s).ks[j];
+            try_ks[j] = s.ks[j];
             j += 1
         }
         try_ks[i] += delta;
-        compute_ends(try_ks, &mut try_ends, (*s).seg_ch);
+        compute_ends(try_ks, &mut try_ends, s.seg_ch);
         k = 0;
         while k < 2 {
             j = 0;
@@ -267,51 +267,50 @@ fn mod2pi(th: f64) -> f64 {
     return 2. * PI * (u - (u + 0.5).floor());
 }
 
-pub unsafe fn setup_path(src: *const SpiroCP, mut n: isize, l: &mut Layout) -> *mut SpiroSegment {
-    let n_orig = n;
+pub fn setup_path(src: &[SpiroCP]) -> Vec<SpiroSegment> {
+    let n_orig = src.len();
+    let mut n = src.len();
 
     if n == 0 {
-        return ptr::null_mut();
+        return Vec::new();
     }
 
-    if (*src.offset(0)).ty == '{' {
+    if (src[0]).ty == '{' {
         n -= 1;
     };
 
-    let layout_spiro_seg = Layout::array::<SpiroSegment>((n + 1).try_into().unwrap()).unwrap();
-    *l = layout_spiro_seg;
-    let r = alloc(layout_spiro_seg) as *mut SpiroSegment;
+    let mut r = vec![SpiroSegment::default(); n + 1];
 
     let mut i = 0;
     let mut ilast;
     while i < n {
-        (*r.offset(i)).x = (*src.offset(i)).x;
-        (*r.offset(i)).y = (*src.offset(i)).y;
-        (*r.offset(i)).ty = (*src.offset(i)).ty;
-        (*r.offset(i)).ks[0] = 0.0;
-        (*r.offset(i)).ks[1] = 0.0;
-        (*r.offset(i)).ks[2] = 0.0;
-        (*r.offset(i)).ks[3] = 0.0;
+        r[i].x = src[i].x;
+        r[i].y = src[i].y;
+        r[i].ty = src[i].ty;
+        r[i].ks[0] = 0.0;
+        r[i].ks[1] = 0.0;
+        r[i].ks[2] = 0.0;
+        r[i].ks[3] = 0.0;
         i += 1
     }
-    (*r.offset(n)).x = (*src.offset(n % n_orig)).x;
-    (*r.offset(n)).y = (*src.offset(n % n_orig)).y;
-    (*r.offset(n)).ty = (*src.offset(n % n_orig)).ty;
+    r[n].x = src[n % n_orig].x;
+    r[n].y = src[n % n_orig].y;
+    r[n].ty = src[n % n_orig].ty;
     i = 0;
     while i < n {
-        let dx: f64 = (*r.offset(i + 1)).x - (*r.offset(i)).x;
-        let dy: f64 = (*r.offset(i + 1)).y - (*r.offset(i)).y;
-        (*r.offset(i)).seg_ch = dx.hypot(dy);
-        (*r.offset(i)).seg_th = dy.atan2(dx);
+        let dx: f64 = r[i + 1].x - r[i].x;
+        let dy: f64 = r[i + 1].y - r[i].y;
+        r[i].seg_ch = dx.hypot(dy);
+        r[i].seg_th = dy.atan2(dx);
         i += 1
     }
     ilast = n - 1;
     i = 0;
     while i < n {
-        if (*r.offset(i)).ty == '{' || (*r.offset(i)).ty == '}' || (*r.offset(i)).ty == 'v' {
-            (*r.offset(i)).bend_th = 0.0
+        if (r[i].ty == '{') || (r[i].ty == '}') || (r[i].ty == 'v') {
+            r[i].bend_th = 0.0;
         } else {
-            (*r.offset(i)).bend_th = mod2pi((*r.offset(i)).seg_th - (*r.offset(ilast)).seg_th)
+            r[i].bend_th = mod2pi(r[i].seg_th - r[ilast].seg_th);
         }
         ilast = i;
         i += 1
@@ -470,7 +469,7 @@ pub unsafe fn add_mat_line(
 
 pub unsafe fn spiro_iter(
     s: *mut SpiroSegment,
-    m: *mut BandMath,
+    m: *mut BandMath, // array
     perm: *mut isize,
     v: *mut f64,
     n: isize,
@@ -808,10 +807,6 @@ pub fn spiro_seg_to_bpath<T>(
     };
 }
 
-pub unsafe fn free_spiro(s: *mut SpiroSegment, l: Layout) {
-    dealloc(s as *mut u8, l);
-}
-
 pub unsafe fn spiro_to_bpath<T>(s: *const SpiroSegment, n: isize, bc: &mut BezierContext<T>) {
     if n == 0 {
         return;
@@ -847,16 +842,14 @@ pub unsafe fn get_knot_th(s: *const SpiroSegment, i: isize) -> f64 {
     };
 }
 
-pub fn run_spiro(path: &mut Vec<SpiroCP>) -> Vec<Operation> {
-    let mut l: Layout = Layout::new::<SpiroSegment>(); // needed to free *SpiroSegment
+pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
     let path_len = path.len().try_into().unwrap();
     let mut ctx: BezierContext<Vec<Operation>> = BezierContext::new();
     unsafe {
-        let segs = setup_path(path.as_mut_ptr(), path_len, &mut l);
-        solve_spiro(segs, path_len);
+        let mut segs = setup_path(path);
+        solve_spiro(segs.as_mut_ptr(), path_len);
 
-        spiro_to_bpath(segs, path_len, &mut ctx);
-        free_spiro(segs, l);
+        spiro_to_bpath(segs.as_mut_ptr(), path_len, &mut ctx);
     }
     ctx.data.unwrap_or(vec![])
 }
