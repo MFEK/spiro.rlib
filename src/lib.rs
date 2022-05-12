@@ -1,4 +1,3 @@
-use std::alloc::{alloc, dealloc, Layout};
 /// spiro-rs ::: inner.rs
 ///
 /// (c) 2020–2021 Fredrick R. Brennan, based on source code by Raph Levien.
@@ -14,7 +13,7 @@ use std::alloc::{alloc, dealloc, Layout};
 /// a brand new implementation. Overall I think it turned out okay, could definitely be better if
 /// someone wants to contribute to removing all the unsafe blocks.
 use std::convert::TryInto as _;
-use std::{mem, ptr, ptr::copy_nonoverlapping as memcpy};
+use std::{mem, ptr::copy_nonoverlapping as memcpy};
 
 pub mod bezctx_oplist;
 pub mod bezctx_ps;
@@ -87,7 +86,7 @@ pub struct SpiroSegment {
     seg_ch: f64,
     seg_th: f64,
 }
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct BandMath {
     a: [f64; 11],
     al: [f64; 5],
@@ -268,7 +267,6 @@ fn mod2pi(th: f64) -> f64 {
 }
 
 pub fn setup_path(src: &[SpiroCP]) -> Vec<SpiroSegment> {
-    let n_orig = src.len();
     let mut n = src.len();
 
     if n == 0 {
@@ -293,9 +291,9 @@ pub fn setup_path(src: &[SpiroCP]) -> Vec<SpiroSegment> {
         r[i].ks[3] = 0.0;
         i += 1
     }
-    r[n].x = src[n % n_orig].x;
-    r[n].y = src[n % n_orig].y;
-    r[n].ty = src[n % n_orig].ty;
+    r[n].x = src[n % src.len()].x;
+    r[n].y = src[n % src.len()].y;
+    r[n].ty = src[n % src.len()].ty;
     i = 0;
     while i < n {
         let dx: f64 = r[i + 1].x - r[i].x;
@@ -435,20 +433,20 @@ pub fn compute_jinc(ty0: char, ty1: char) -> isize {
     };
 }
 
-pub unsafe fn count_vec(s: *const SpiroSegment, nseg: isize) -> isize {
+pub fn count_vec(s: &[SpiroSegment], nseg: isize) -> isize {
     let mut i = 0;
     let mut n: isize = 0;
-    while i < nseg {
-        n += compute_jinc((*s.offset(i)).ty, (*s.offset(i + 1)).ty);
+    while i < nseg as usize {
+        n += compute_jinc(s[i].ty, s[i + 1].ty);
         i += 1
     }
     return n;
 }
 
-pub unsafe fn add_mat_line(
-    m: *mut BandMath,
-    v: *mut f64,
-    derivs: *mut f64,
+pub fn add_mat_line(
+    m: &mut [BandMath],
+    v: &mut [f64],
+    derivs: &mut [f64],
     x: f64,
     y: f64,
     j: isize,
@@ -459,22 +457,22 @@ pub unsafe fn add_mat_line(
     let mut k: isize = 0;
     if jj >= 0 {
         let joff: isize = (j + 5 - jj + nmat) % nmat;
-        *v.offset(jj) += x;
+        v[jj as usize] += x;
         while k < jinc {
-            (*m.offset(jj)).a[(joff + k) as usize] += y * *derivs.offset(k);
+            m[jj as usize].a[(joff + k) as usize] += y * derivs[k as usize];
             k += 1
         }
     };
 }
 
-pub unsafe fn spiro_iter(
-    s: *mut SpiroSegment,
-    m: *mut BandMath, // array
-    perm: *mut isize,
-    v: *mut f64,
+pub fn spiro_iter(
+    s: &mut [SpiroSegment],
+    m: &mut [BandMath],
+    perm: &mut [isize],
+    v: &mut [f64],
     n: isize,
 ) -> f64 {
-    let cyclic = (*s.offset(0)).ty != '{' && (*s.offset(0)).ty != 'v';
+    let cyclic = s[0].ty != '{' && s[0].ty != 'v';
     let mut i: isize = 0;
     let mut j: isize;
     let mut jj: isize;
@@ -482,33 +480,33 @@ pub unsafe fn spiro_iter(
     let mut norm: f64;
     let n_invert: isize;
     while i < nmat {
-        *v.offset(i) = 0.0;
+        v[i as usize] = 0.0;
         j = 0;
         while j < 11 {
-            (*m.offset(i)).a[j as usize] = 0.0;
+            m[i as usize].a[j as usize] = 0.0;
             j += 1
         }
         j = 0;
         while j < 5 {
-            (*m.offset(i)).al[j as usize] = 0.0;
+            m[i as usize].al[j as usize] = 0.0;
             j += 1
         }
         i += 1
     }
     j = 0;
-    if (*s.offset(0)).ty == 'o' {
-        jj = nmat - 2
-    } else if (*s.offset(0)).ty == 'c' || (*s.offset(0)).ty == '[' || (*s.offset(0)).ty == ']' {
-        jj = nmat - 1
+    if s[0].ty == 'o' {
+        jj = nmat - 2;
+    } else if s[0].ty == 'c' || s[0].ty == '[' || s[0].ty == ']' {
+        jj = nmat - 1;
     } else {
-        jj = 0
+        jj = 0;
     }
     i = 0;
     while i < n {
-        let ty0: char = (*s.offset(i)).ty;
-        let ty1: char = (*s.offset(i + 1)).ty;
+        let ty0: char = s[i as usize].ty;
+        let ty1: char = s[i as usize + 1].ty;
         let jinc: isize = compute_jinc(ty0, ty1);
-        let th: f64 = (*s.offset(i)).bend_th;
+        let th: f64 = s[i as usize].bend_th;
         let mut ends: [[f64; 4]; 2] = [[0.; 4]; 2];
         let mut derivs: [[[f64; 4]; 2]; 4] = [[[0.; 4]; 2]; 4];
         let mut jthl: isize = -1;
@@ -519,7 +517,7 @@ pub unsafe fn spiro_iter(
         let mut jk0r: isize = -1;
         let mut jk1r: isize = -1;
         let mut jk2r: isize = -1;
-        compute_pderivs(&mut *s.offset(i), &mut ends, &mut derivs, jinc);
+        compute_pderivs(&mut s[i as usize], &mut ends, &mut derivs, jinc);
         /* constraints crossing left */
         if ty0 == 'o' || ty0 == 'c' || ty0 == '[' || ty0 == ']' {
             let fresh0 = jj;
@@ -574,7 +572,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[0][0].as_mut_ptr(),
+            &mut derivs[0][0],
             th - ends[0][0],
             1.,
             j,
@@ -585,7 +583,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[1][0].as_mut_ptr(),
+            &mut derivs[1][0],
             ends[0][1],
             -1.,
             j,
@@ -596,7 +594,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[2][0].as_mut_ptr(),
+            &mut derivs[2][0],
             ends[0][2],
             -1.,
             j,
@@ -607,7 +605,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[3][0].as_mut_ptr(),
+            &mut derivs[3][0],
             ends[0][3],
             -1.,
             j,
@@ -618,7 +616,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[0][1].as_mut_ptr(),
+            &mut derivs[0][1],
             -ends[1][0],
             1.,
             j,
@@ -629,7 +627,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[1][1].as_mut_ptr(),
+            &mut derivs[1][1],
             -ends[1][1],
             1.,
             j,
@@ -640,7 +638,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[2][1].as_mut_ptr(),
+            &mut derivs[2][1],
             -ends[1][2],
             1.,
             j,
@@ -651,7 +649,7 @@ pub unsafe fn spiro_iter(
         add_mat_line(
             m,
             v,
-            derivs[3][1].as_mut_ptr(),
+            &mut derivs[3][1],
             -ends[1][3],
             1.,
             j,
@@ -665,32 +663,35 @@ pub unsafe fn spiro_iter(
     }
     if cyclic {
         let u_nmat: usize = nmat.try_into().unwrap();
-
-        memcpy(m, m.offset(nmat), mem::size_of::<BandMath>() * u_nmat);
-        memcpy(m, m.offset(2 * nmat), mem::size_of::<BandMath>() * u_nmat);
-        memcpy(v, v.offset(nmat), mem::size_of::<f64>() * u_nmat);
-        memcpy(v, v.offset(2 * nmat), mem::size_of::<f64>() * u_nmat);
-
+        // ????????????????
+        unsafe {
+            memcpy(m.as_ptr(), m.as_mut_ptr().offset(nmat), mem::size_of::<BandMath>() * u_nmat);
+            memcpy(m.as_ptr(), m.as_mut_ptr().offset(2 * nmat), mem::size_of::<BandMath>() * u_nmat);
+            memcpy(v.as_ptr(), v.as_mut_ptr().offset(nmat), mem::size_of::<f64>() * u_nmat);
+            memcpy(v.as_ptr(), v.as_mut_ptr().offset(2 * nmat), mem::size_of::<f64>() * u_nmat);    
+        }
         n_invert = 3 * nmat;
         j = nmat
     } else {
         n_invert = nmat;
         j = 0
     }
-    bandec11(m, perm, n_invert);
-    banbks11(m, perm, v, n_invert);
+    unsafe {
+        bandec11(m.as_mut_ptr(), perm.as_mut_ptr(), n_invert);
+        banbks11(m.as_mut_ptr(), perm.as_mut_ptr(), v.as_mut_ptr(), n_invert);
+    }
     norm = 0.0;
     i = 0;
     while i < n {
-        let ty0_0: char = (*s.offset(i)).ty;
-        let ty1_0: char = (*s.offset(i + 1)).ty;
+        let ty0_0: char = s[i as usize].ty;
+        let ty1_0: char = s[(i + 1) as usize].ty;
         let jinc_0: isize = compute_jinc(ty0_0, ty1_0);
         let mut k: isize = 0;
         while k < jinc_0 {
             let fresh8 = j;
             j = j + 1;
-            let dk: f64 = *v.offset(fresh8);
-            (*s.offset(i)).ks[k as usize] += dk;
+            let dk: f64 = v[fresh8 as usize];
+            s[i as usize].ks[k as usize] += dk;
             norm += dk * dk;
             k += 1
         }
@@ -699,7 +700,7 @@ pub unsafe fn spiro_iter(
     return norm;
 }
 
-pub unsafe fn solve_spiro(s: *mut SpiroSegment, nseg: isize) -> isize {
+pub fn solve_spiro(s: &mut [SpiroSegment], nseg: isize) -> isize {
     let nmat: isize = count_vec(s, nseg);
     let mut n_alloc: usize = nmat.try_into().unwrap();
     let mut norm: f64;
@@ -707,34 +708,26 @@ pub unsafe fn solve_spiro(s: *mut SpiroSegment, nseg: isize) -> isize {
     if nmat == 0 {
         return 0;
     }
-    if (*s.offset(0)).ty != '{' && (*s.offset(0)).ty != 'v' {
+    if s[0].ty != '{' && s[0].ty != 'v' {
         n_alloc *= 3
     }
     if n_alloc < 5 {
         n_alloc = 5
     }
 
-    let layout_m = Layout::array::<BandMath>(n_alloc).unwrap();
-    let m = alloc(layout_m) as *mut _ as *mut BandMath;
-
-    let layout_v = Layout::array::<f64>(n_alloc).unwrap();
-    let v = alloc(layout_v) as *mut _ as *mut f64;
-
-    let layout_perm = Layout::array::<isize>(n_alloc).unwrap();
-    let perm = alloc(layout_perm) as *mut _ as *mut isize;
+    let mut m = vec![BandMath::default(); n_alloc];
+    let mut v = vec![0.0; n_alloc];
+    let mut perm = vec![0; n_alloc];
 
     i = 0;
     while i < 10 {
-        norm = spiro_iter(s, m, perm, v, nseg);
+        norm = spiro_iter(s, &mut m, &mut perm, &mut v, nseg);
         if norm < 1e-12 {
             break;
         }
         i += 1
     }
 
-    dealloc(m as *mut u8, layout_m);
-    dealloc(v as *mut u8, layout_v);
-    dealloc(perm as *mut u8, layout_perm);
     return 0;
 }
 
@@ -847,7 +840,7 @@ pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
     let mut ctx: BezierContext<Vec<Operation>> = BezierContext::new();
     unsafe {
         let mut segs = setup_path(path);
-        solve_spiro(segs.as_mut_ptr(), path_len);
+        solve_spiro(&mut segs, path_len);
 
         spiro_to_bpath(segs.as_mut_ptr(), path_len, &mut ctx);
     }

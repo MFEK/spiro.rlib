@@ -88,11 +88,9 @@ fn test_curve() {
     const TEST_ITERATIONS: usize = 1_000;
     let path_len = path.len().try_into().unwrap();
     while i < TEST_ITERATIONS {
-        unsafe {
-            segs = setup_path(&path);
-            solve_spiro(segs.as_mut_ptr(), path.len().try_into().unwrap());
-            i += 1;
-        }
+        segs = setup_path(&path);
+        solve_spiro(&mut segs, path.len().try_into().unwrap());
+        i += 1;
     }
 
     let oplist = run_spiro(&mut path);
