@@ -224,12 +224,7 @@ pub fn compute_ends(ks: [f64; 4], ends: &mut [[f64; 4]; 2], seg_ch: f64) -> f64 
     return l;
 }
 
-pub fn compute_pderivs(
-    s: &SpiroSegment,
-    ends: &mut [[f64; 4]; 2],
-    derivs: &mut [[[f64; 4]; 2]; 4],
-    jinc: isize,
-) {
+pub fn compute_pderivs(s: &SpiroSegment, ends: &mut [[f64; 4]; 2], derivs: &mut [[[f64; 4]; 2]; 4], jinc: isize) {
     let recip_d: f64 = 2e6;
     let delta: f64 = 1.0 / recip_d;
     let mut try_ks: [f64; 4] = [0.; 4];
@@ -367,8 +362,7 @@ pub fn bandec11(m: &mut [BandMath], perm: &mut [isize], n: isize) {
             m[k as usize].al[(i - k - 1) as usize] = x;
             j = 1;
             while j < 11 {
-                m[i as usize].a[(j - 1) as usize] =
-                    m[i as usize].a[j as usize] - x * m[k as usize].a[j as usize];
+                m[i as usize].a[(j - 1) as usize] = m[i as usize].a[j as usize] - x * m[k as usize].a[j as usize];
                 j += 1
             }
             m[i as usize].a[10] = 0.0;
@@ -423,9 +417,7 @@ pub fn compute_jinc(ty0: char, ty1: char) -> isize {
         return 4;
     } else if ty0 == 'c' && ty1 == 'c' {
         return 2;
-    } else if (ty0 == '{' || ty0 == 'v' || ty0 == '[') && ty1 == 'c'
-        || ty0 == 'c' && (ty1 == '}' || ty1 == 'v' || ty1 == ']')
-    {
+    } else if (ty0 == '{' || ty0 == 'v' || ty0 == '[') && ty1 == 'c' || ty0 == 'c' && (ty1 == '}' || ty1 == 'v' || ty1 == ']') {
         return 1;
     } else {
         return 0;
@@ -442,17 +434,7 @@ pub fn count_vec(s: &[SpiroSegment], nseg: isize) -> isize {
     return n;
 }
 
-pub fn add_mat_line(
-    m: &mut [BandMath],
-    v: &mut [f64],
-    derivs: &mut [f64],
-    x: f64,
-    y: f64,
-    j: isize,
-    jj: isize,
-    jinc: isize,
-    nmat: isize,
-) {
+pub fn add_mat_line(m: &mut [BandMath], v: &mut [f64], derivs: &mut [f64], x: f64, y: f64, j: isize, jj: isize, jinc: isize, nmat: isize) {
     let mut k: isize = 0;
     if jj >= 0 {
         let joff: isize = (j + 5 - jj + nmat) % nmat;
@@ -464,13 +446,7 @@ pub fn add_mat_line(
     };
 }
 
-pub fn spiro_iter(
-    s: &mut [SpiroSegment],
-    m: &mut [BandMath],
-    perm: &mut [isize],
-    v: &mut [f64],
-    n: isize,
-) -> f64 {
+pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [isize], v: &mut [f64], n: isize) -> f64 {
     let cyclic = s[0].ty != '{' && s[0].ty != 'v';
     let mut i: isize = 0;
     let mut j: isize;
@@ -568,94 +544,14 @@ pub fn spiro_iter(
             jk2r = (jj + 3) % nmat
         }
 
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[0][0],
-            th - ends[0][0],
-            1.,
-            j,
-            jthl,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[1][0],
-            ends[0][1],
-            -1.,
-            j,
-            jk0l,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[2][0],
-            ends[0][2],
-            -1.,
-            j,
-            jk1l,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[3][0],
-            ends[0][3],
-            -1.,
-            j,
-            jk2l,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[0][1],
-            -ends[1][0],
-            1.,
-            j,
-            jthr,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[1][1],
-            -ends[1][1],
-            1.,
-            j,
-            jk0r,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[2][1],
-            -ends[1][2],
-            1.,
-            j,
-            jk1r,
-            jinc,
-            nmat,
-        );
-        add_mat_line(
-            m,
-            v,
-            &mut derivs[3][1],
-            -ends[1][3],
-            1.,
-            j,
-            jk2r,
-            jinc,
-            nmat,
-        );
+        add_mat_line(m, v, &mut derivs[0][0], th - ends[0][0], 1., j, jthl, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[1][0], ends[0][1], -1., j, jk0l, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[2][0], ends[0][2], -1., j, jk1l, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[3][0], ends[0][3], -1., j, jk2l, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[0][1], -ends[1][0], 1., j, jthr, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[1][1], -ends[1][1], 1., j, jk0r, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[2][1], -ends[1][2], 1., j, jk1r, jinc, nmat);
+        add_mat_line(m, v, &mut derivs[3][1], -ends[1][3], 1., j, jk2r, jinc, nmat);
 
         j += jinc;
         i += 1
@@ -725,17 +621,8 @@ pub fn solve_spiro(s: &mut [SpiroSegment], nseg: isize) -> isize {
     return 0;
 }
 
-pub fn spiro_seg_to_bpath<T>(
-    ks: [f64; 4],
-    x0: f64,
-    y0: f64,
-    x1: f64,
-    y1: f64,
-    bc: &mut BezierContext<T>,
-    depth: isize,
-) {
-    let bend: f64 =
-        (ks[0]).abs() + (0.5 * ks[1]).abs() + (0.125 * ks[2]).abs() + (1.0 / 48. * ks[3]).abs();
+pub fn spiro_seg_to_bpath<T>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, bc: &mut BezierContext<T>, depth: isize) {
+    let bend: f64 = (ks[0]).abs() + (0.5 * ks[1]).abs() + (0.125 * ks[2]).abs() + (1.0 / 48. * ks[3]).abs();
     if bend == 0. {
         bc.line_to(x1, y1);
     } else {
@@ -778,8 +665,7 @@ pub fn spiro_seg_to_bpath<T>(
             ksub[1] = 0.25 * ks[1] - 1.0 / 16. * ks[2] + 1.0 / 128. * ks[3];
             ksub[2] = 0.125 * ks[2] - 1.0 / 32. * ks[3];
             ksub[3] = 1.0 / 16. * ks[3];
-            thsub =
-                rot - 0.25 * ks[0] + 1.0 / 32. * ks[1] - 1.0 / 384. * ks[2] + 1.0 / 6144. * ks[3];
+            thsub = rot - 0.25 * ks[0] + 1.0 / 32. * ks[1] - 1.0 / 384. * ks[2] + 1.0 / 6144. * ks[3];
             cth = 0.5 * scale * (thsub).cos();
             sth = 0.5 * scale * (thsub).sin();
             integrate_spiro(ksub, &mut xysub);
@@ -799,11 +685,7 @@ pub fn spiro_to_bpath<T>(s: &[SpiroSegment], n: isize, bc: &mut BezierContext<T>
         return;
     }
     let mut i = 0;
-    let nsegs: isize = if s[(n - 1) as usize].ty == '}' {
-        (n) - 1
-    } else {
-        n
-    };
+    let nsegs: isize = if s[(n - 1) as usize].ty == '}' { (n) - 1 } else { n };
     while i < nsegs {
         let x0: f64 = s[i as usize].x;
         let y0: f64 = s[i as usize].y;
@@ -824,11 +706,7 @@ pub fn get_knot_th(s: &[SpiroSegment], i: isize) -> f64 {
         compute_ends(s[i as usize].ks, &mut ends, s[i as usize].seg_ch);
         return s[i as usize].seg_th - ends[0][0];
     } else {
-        compute_ends(
-            s[(i - 1) as usize].ks,
-            &mut ends,
-            s[(i - 1) as usize].seg_ch,
-        );
+        compute_ends(s[(i - 1) as usize].ks, &mut ends, s[(i - 1) as usize].seg_ch);
         return s[(i - 1) as usize].seg_th + ends[1][0];
     };
 }
