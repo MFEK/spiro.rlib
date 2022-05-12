@@ -97,7 +97,7 @@ fn test_curve() {
 
     println!("100 800 translate 1 -1 scale 1 setlinewidth");
     unsafe {
-        spiro_to_bpath(segs.as_mut_ptr(), path_len, &mut bezctx_ps::POSTSCRIPT_BEZCTX);
+        spiro_to_bpath(&mut segs, path_len, &mut bezctx_ps::POSTSCRIPT_BEZCTX);
     }
     println!("stroke");
     println!("showpage");

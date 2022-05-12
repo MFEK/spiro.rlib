@@ -316,7 +316,7 @@ pub fn setup_path(src: &[SpiroCP]) -> Vec<SpiroSegment> {
     r
 }
 
-pub unsafe fn bandec11(m: *mut BandMath, perm: *mut isize, n: isize) {
+pub fn bandec11(m: &mut [BandMath], perm: &mut [isize], n: isize) {
     let mut i: isize = 0;
     let mut j;
     let mut k: isize = 0;
@@ -325,36 +325,36 @@ pub unsafe fn bandec11(m: *mut BandMath, perm: *mut isize, n: isize) {
     while i < 5 {
         j = 0;
         while j < i + 6 {
-            (*m.offset(i)).a[j as usize] = (*m.offset(i as isize)).a[(j + 5 - i) as usize];
+            m[i as usize].a[j as usize] = m[i as usize].a[(j + 5 - i) as usize];
             j += 1
         }
         while j < 11 {
-            (*m.offset(i)).a[j as usize] = 0.0;
+            m[i as usize].a[j as usize] = 0.0;
             j += 1
         }
         i += 1
     }
     while k < n {
         let mut pivot: isize = k;
-        let mut pivot_val: f64 = (*m.offset(k)).a[0];
+        let mut pivot_val: f64 = m[k as usize].a[0];
         if l < n {
             l += 1
         }
         j = k + 1;
         while j < l {
-            if ((*m.offset(j)).a[0]).abs() > pivot_val.abs() {
-                pivot_val = (*m.offset(j)).a[0];
-                pivot = j
+            if m[j as usize].a[0].abs() > pivot_val.abs() {
+                pivot_val = m[j as usize].a[0];
+                pivot = j;
             }
             j += 1
         }
-        *perm.offset(k) = pivot;
+        perm[k as usize] = pivot;
         if pivot != k {
             j = 0;
             while j < 11 {
-                let tmp: f64 = (*m.offset(k)).a[j as usize];
-                (*m.offset(k)).a[j as usize] = (*m.offset(pivot)).a[j as usize];
-                (*m.offset(pivot)).a[j as usize] = tmp;
+                let tmp: f64 = m[k as usize].a[j as usize];
+                m[k as usize].a[j as usize] = m[pivot as usize].a[j as usize];
+                m[pivot as usize].a[j as usize] = tmp;
                 j += 1
             }
         }
@@ -364,39 +364,39 @@ pub unsafe fn bandec11(m: *mut BandMath, perm: *mut isize, n: isize) {
         let pivot_scale = 1.0 / pivot_val;
         i = k + 1;
         while i < l {
-            let x: f64 = (*m.offset(i)).a[0] * pivot_scale;
-            (*m.offset(k)).al[(i - k - 1) as usize] = x;
+            let x: f64 = m[i as usize].a[0] * pivot_scale;
+            m[k as usize].al[(i - k - 1) as usize] = x;
             j = 1;
             while j < 11 {
-                (*m.offset(i)).a[(j - 1) as usize] =
-                    (*m.offset(i)).a[j as usize] - x * (*m.offset(k)).a[j as usize];
+                m[i as usize].a[(j - 1) as usize] =
+                    m[i as usize].a[j as usize] - x * m[k as usize].a[j as usize];
                 j += 1
             }
-            (*m.offset(i)).a[10] = 0.0;
+            m[i as usize].a[10] = 0.0;
             i += 1
         }
         k += 1
     }
 }
 
-pub unsafe fn banbks11(m: *const BandMath, perm: *const isize, v: *mut f64, n: isize) {
+pub fn banbks11(m: &[BandMath], perm: &[isize], v: &mut [f64], n: isize) {
     let mut i;
     let mut k: isize = 0;
     let mut l: isize = 5;
     /* forward substitution */
     while k < n {
-        i = *perm.offset(k);
+        i = perm[k as usize];
         if i != k {
-            let tmp: f64 = *v.offset(k);
-            *v.offset(k) = *v.offset(i);
-            *v.offset(i) = tmp
+            let tmp = v[k as usize];
+            v[k as usize] = v[i as usize];
+            v[i as usize] = tmp;
         }
         if l < n {
             l += 1
         }
         i = k + 1;
         while i < l {
-            *v.offset(i) -= (*m.offset(k as isize)).al[(i - k - 1) as usize] * *v.offset(k);
+            v[i as usize] -= m[k as usize].al[(i - k - 1) as usize] * v[k as usize];
             i += 1
         }
         k += 1
@@ -405,13 +405,13 @@ pub unsafe fn banbks11(m: *const BandMath, perm: *const isize, v: *mut f64, n: i
     l = 1;
     i = n - 1;
     while i >= 0 {
-        let mut x: f64 = *v.offset(i);
+        let mut x: f64 = v[i as usize];
         k = 1;
         while k < l {
-            x -= (*m.offset(i)).a[k as usize] * *v.offset(k + i);
+            x -= m[i as usize].a[k as usize] * v[(k + i) as usize];
             k += 1
         }
-        *v.offset(i) = x / (*m.offset(i)).a[0];
+        v[i as usize] = x / m[i as usize].a[0];
         if l < 11 {
             l += 1
         }
@@ -665,10 +665,26 @@ pub fn spiro_iter(
         let u_nmat: usize = nmat.try_into().unwrap();
         // ????????????????
         unsafe {
-            memcpy(m.as_ptr(), m.as_mut_ptr().offset(nmat), mem::size_of::<BandMath>() * u_nmat);
-            memcpy(m.as_ptr(), m.as_mut_ptr().offset(2 * nmat), mem::size_of::<BandMath>() * u_nmat);
-            memcpy(v.as_ptr(), v.as_mut_ptr().offset(nmat), mem::size_of::<f64>() * u_nmat);
-            memcpy(v.as_ptr(), v.as_mut_ptr().offset(2 * nmat), mem::size_of::<f64>() * u_nmat);    
+            memcpy(
+                m.as_ptr(),
+                m.as_mut_ptr().offset(nmat),
+                mem::size_of::<BandMath>() * u_nmat,
+            );
+            memcpy(
+                m.as_ptr(),
+                m.as_mut_ptr().offset(2 * nmat),
+                mem::size_of::<BandMath>() * u_nmat,
+            );
+            memcpy(
+                v.as_ptr(),
+                v.as_mut_ptr().offset(nmat),
+                mem::size_of::<f64>() * u_nmat,
+            );
+            memcpy(
+                v.as_ptr(),
+                v.as_mut_ptr().offset(2 * nmat),
+                mem::size_of::<f64>() * u_nmat,
+            );
         }
         n_invert = 3 * nmat;
         j = nmat
@@ -676,10 +692,8 @@ pub fn spiro_iter(
         n_invert = nmat;
         j = 0
     }
-    unsafe {
-        bandec11(m.as_mut_ptr(), perm.as_mut_ptr(), n_invert);
-        banbks11(m.as_mut_ptr(), perm.as_mut_ptr(), v.as_mut_ptr(), n_invert);
-    }
+    bandec11(m, perm, n_invert);
+    banbks11(m, perm, v, n_invert);
     norm = 0.0;
     i = 0;
     while i < n {
@@ -800,49 +814,51 @@ pub fn spiro_seg_to_bpath<T>(
     };
 }
 
-pub unsafe fn spiro_to_bpath<T>(s: *const SpiroSegment, n: isize, bc: &mut BezierContext<T>) {
+pub fn spiro_to_bpath<T>(s: &[SpiroSegment], n: isize, bc: &mut BezierContext<T>) {
     if n == 0 {
         return;
     }
     let mut i = 0;
-    let nsegs: isize = if (*s.offset(n - 1)).ty == '}' {
+    let nsegs: isize = if s[(n - 1) as usize].ty == '}' {
         (n) - 1
     } else {
         n
     };
     while i < nsegs {
-        let x0: f64 = (*s.offset(i)).x;
-        let y0: f64 = (*s.offset(i)).y;
-        let x1: f64 = (*s.offset(i + 1)).x;
-        let y1: f64 = (*s.offset(i + 1)).y;
+        let x0: f64 = s[i as usize].x;
+        let y0: f64 = s[i as usize].y;
+        let x1: f64 = s[(i + 1) as usize].x;
+        let y1: f64 = s[(i + 1) as usize].y;
         if i == 0 {
-            bc.move_to(x0, y0, (*s.offset(0)).ty == '{');
+            bc.move_to(x0, y0, s[0 as usize].ty == '{');
         }
         bc.mark_knot(i.try_into().unwrap());
-        spiro_seg_to_bpath((*s.offset(i)).ks, x0, y0, x1, y1, bc, 0);
+        spiro_seg_to_bpath(s[i as usize].ks, x0, y0, x1, y1, bc, 0);
         i += 1
     }
 }
 
-pub unsafe fn get_knot_th(s: *const SpiroSegment, i: isize) -> f64 {
+pub fn get_knot_th(s: &[SpiroSegment], i: isize) -> f64 {
     let mut ends: [[f64; 4]; 2] = [[0.; 4]; 2];
     if i == 0 {
-        compute_ends((*s.offset(i)).ks, &mut ends, (*s.offset(i)).seg_ch);
-        return (*s.offset(i)).seg_th - ends[0][0];
+        compute_ends(s[i as usize].ks, &mut ends, s[i as usize].seg_ch);
+        return s[i as usize].seg_th - ends[0][0];
     } else {
-        compute_ends((*s.offset(i - 1)).ks, &mut ends, (*s.offset(i - 1)).seg_ch);
-        return (*s.offset(i - 1)).seg_th + ends[1][0];
+        compute_ends(
+            s[(i - 1) as usize].ks,
+            &mut ends,
+            s[(i - 1) as usize].seg_ch,
+        );
+        return s[(i - 1) as usize].seg_th + ends[1][0];
     };
 }
 
 pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
     let path_len = path.len().try_into().unwrap();
     let mut ctx: BezierContext<Vec<Operation>> = BezierContext::new();
-    unsafe {
-        let mut segs = setup_path(path);
-        solve_spiro(&mut segs, path_len);
+    let mut segs = setup_path(path);
+    solve_spiro(&mut segs, path_len);
 
-        spiro_to_bpath(segs.as_mut_ptr(), path_len, &mut ctx);
-    }
+    spiro_to_bpath(&mut segs, path_len, &mut ctx);
     ctx.data.unwrap_or(vec![])
 }
