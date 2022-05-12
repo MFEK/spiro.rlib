@@ -13,7 +13,6 @@
 /// a brand new implementation. Overall I think it turned out okay, could definitely be better if
 /// someone wants to contribute to removing all the unsafe blocks.
 use std::convert::TryInto as _;
-use std::{mem, ptr::copy_nonoverlapping as memcpy};
 
 pub mod bezctx_oplist;
 pub mod bezctx_ps;
@@ -663,29 +662,10 @@ pub fn spiro_iter(
     }
     if cyclic {
         let u_nmat: usize = nmat.try_into().unwrap();
-        // ????????????????
-        unsafe {
-            memcpy(
-                m.as_ptr(),
-                m.as_mut_ptr().offset(nmat),
-                mem::size_of::<BandMath>() * u_nmat,
-            );
-            memcpy(
-                m.as_ptr(),
-                m.as_mut_ptr().offset(2 * nmat),
-                mem::size_of::<BandMath>() * u_nmat,
-            );
-            memcpy(
-                v.as_ptr(),
-                v.as_mut_ptr().offset(nmat),
-                mem::size_of::<f64>() * u_nmat,
-            );
-            memcpy(
-                v.as_ptr(),
-                v.as_mut_ptr().offset(2 * nmat),
-                mem::size_of::<f64>() * u_nmat,
-            );
-        }
+        m.copy_within(..u_nmat, u_nmat);
+        m.copy_within(..u_nmat, 2 * u_nmat);
+        v.copy_within(..u_nmat, u_nmat);
+        v.copy_within(..u_nmat, 2 * u_nmat);
         n_invert = 3 * nmat;
         j = nmat
     } else {
