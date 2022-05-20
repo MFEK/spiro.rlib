@@ -1,6 +1,6 @@
+use crate::BezierContext;
 /// Create a list of Bézier operations suitable for SVG etc
 use log;
-use crate::BezierContext;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
@@ -29,6 +29,12 @@ pub fn mark_knot(ctx: &mut BezierContext<Vec<Operation>>, knot_idx: usize) {
 
 impl BezierContext<Vec<Operation>> {
     pub fn new() -> Self {
-        Self { move_fn: move_to, line_fn: line_to, curve_fn: curve_to, mark_knot_fn: mark_knot, data: Some(Vec::new()) }
+        Self {
+            move_fn: move_to,
+            line_fn: line_to,
+            curve_fn: curve_to,
+            mark_knot_fn: mark_knot,
+            data: Some(Vec::new()),
+        }
     }
 }
