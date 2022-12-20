@@ -13,6 +13,7 @@
 //! a brand new implementation. Overall I think it turned out okay, could definitely be better if
 //! someone wants to contribute.
 
+use std::any::Any;
 use std::convert::TryInto as _;
 
 pub mod bezctx_oplist;
@@ -20,16 +21,19 @@ pub mod bezctx_ps;
 use bezctx_oplist::Operation;
 
 #[derive(Copy, Clone)]
-pub struct BezierContext<T> {
-    pub move_fn: fn(&mut Self, f64, f64, bool) -> (),
-    pub line_fn: fn(&mut Self, f64, f64) -> (),
-    pub curve_fn: fn(&mut Self, f64, f64, f64, f64, f64, f64) -> (),
+pub struct BezierContext<T, A>
+where
+    A: Any,
+{
+    pub move_fn: fn(&mut Self, f64, f64, bool) -> A,
+    pub line_fn: fn(&mut Self, f64, f64) -> A,
+    pub curve_fn: fn(&mut Self, f64, f64, f64, f64, f64, f64) -> A,
     // knot_idx
-    pub mark_knot_fn: fn(&mut Self, usize) -> (),
+    pub mark_knot_fn: fn(&mut Self, usize) -> A,
     pub data: T,
 }
 
-impl<T> BezierContext<T> {
+impl<T, A: Any> BezierContext<T, A> {
     pub fn move_to(&mut self, x: f64, y: f64, is_open: bool) {
         (self.move_fn)(self, x, y, is_open);
     }
@@ -45,7 +49,10 @@ impl<T> BezierContext<T> {
     }
 }
 
-impl<T> Default for BezierContext<T> where T: Default {
+impl<T> Default for BezierContext<T, ()>
+where
+    T: Default,
+{
     fn default() -> Self {
         Self {
             move_fn: |_, _, _, _| {},
@@ -622,7 +629,7 @@ pub fn solve_spiro(s: &mut [SpiroSegment], nseg: isize) -> isize {
     return 0;
 }
 
-pub fn spiro_seg_to_bpath<T>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, bc: &mut BezierContext<T>, depth: isize) {
+pub fn spiro_seg_to_bpath<T, A: Any>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, bc: &mut BezierContext<T, A>, depth: isize) {
     let bend: f64 = (ks[0]).abs() + (0.5 * ks[1]).abs() + (0.125 * ks[2]).abs() + (1.0 / 48. * ks[3]).abs();
     if bend == 0. {
         bc.line_to(x1, y1);
@@ -681,7 +688,7 @@ pub fn spiro_seg_to_bpath<T>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, b
     };
 }
 
-pub fn spiro_to_bpath<T>(s: &[SpiroSegment], n: isize, bc: &mut BezierContext<T>) {
+pub fn spiro_to_bpath<T, A: Any>(s: &[SpiroSegment], n: isize, bc: &mut BezierContext<T, A>) {
     if n == 0 {
         return;
     }
@@ -714,7 +721,7 @@ pub fn get_knot_th(s: &[SpiroSegment], i: isize) -> f64 {
 
 pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
     let path_len = path.len().try_into().unwrap();
-    let mut ctx: BezierContext<Vec<Operation>> = BezierContext::<Vec<Operation>>::new();
+    let mut ctx = BezierContext::<Vec<Operation>, ()>::new();
     let mut segs = setup_path(path);
     solve_spiro(&mut segs, path_len);
 
