@@ -1,7 +1,5 @@
 use spiro_inner::*;
-use std::alloc::Layout;
 use std::convert::TryInto as _;
-use std::ptr;
 
 #[test]
 fn test_curve() {
