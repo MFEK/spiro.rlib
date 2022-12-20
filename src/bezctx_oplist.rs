@@ -1,3 +1,7 @@
+//! Provides a [`BezierContext`] that builds up a [`Vec<Operation>`].
+//!
+//! Note: If compiled with `default` (`log`) feature, [`log::trace`] is active.
+
 use crate::BezierContext;
 /// Create a list of Bézier operations suitable for SVG etc
 #[cfg(feature = "log")]
@@ -7,11 +11,16 @@ macro_rules! trace {
     ($($arg:tt)*) => {} // noop
 }
 
+/// A Bézier pen operation.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
+    /// `(x, y, is_open)`
     MoveTo(f64, f64, bool),
+    /// `(x, y)`
     LineTo(f64, f64),
+    /// `(x1, y1, x2, y2, x3, y3)`
     CurveTo(f64, f64, f64, f64, f64, f64),
+    /// `(knot_idx)`
     MarkKnot(usize),
 }
 

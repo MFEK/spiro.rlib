@@ -1,17 +1,18 @@
-/// spiro-rs ::: inner.rs
-///
-/// (c) 2020–2021 Fredrick R. Brennan, based on source code by Raph Levien.
-///
-/// Licensed under same license as Raph Levien's libspiro, upon which this code is based. This code
-/// was transpiled with C2Rust, which I then spent hours and hours cleaning up, removing the
-/// dependency on libc, and removing a lot, but not all of, the unsafe code.
-///
-/// For the original comment by Mr. Levien in spiro.c, see comment above struct SpiroSegment.
-///
-/// I chose to implement it this way, with a transpiler, as the complex mathematics involved here
-/// are really beyond my understanding, and I felt that it'd be way too hard for me to come up with
-/// a brand new implementation. Overall I think it turned out okay, could definitely be better if
-/// someone wants to contribute to removing all the unsafe blocks.
+//! spiro-rs ::: inner.rs
+//!
+//! (c) 2020–2021 Fredrick R. Brennan, based on source code by Raph Levien.
+//!
+//! Licensed under same license as Raph Levien's libspiro, upon which this code is based. This code
+//! was transpiled with C2Rust, which I then spent hours and hours cleaning up, removing the
+//! dependency on libc, and removing all of the unsafe code.
+//!
+//! For the original comment by Mr. Levien in spiro.c, see comment above struct SpiroSegment.
+//!
+//! I chose to implement it this way, with a transpiler, as the complex mathematics involved here
+//! are really beyond my understanding, and I felt that it'd be way too hard for me to come up with
+//! a brand new implementation. Overall I think it turned out okay, could definitely be better if
+//! someone wants to contribute.
+
 use std::convert::TryInto as _;
 
 pub mod bezctx_oplist;
