@@ -1,10 +1,10 @@
-# `spiro-inner.rlib`
+# `spiro-inner.rlib` v0.1.0 (⏫2022-12-20)
 
 This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited by Fredrick R. Brennan (@ctrlcctrlv).
 
 ## License (this edit of C2Rust output)
 ```
-Copyright (C) 2020–2021 Fredrick R. Brennan
+Copyright (C) 2020–2022 Fredrick R. Brennan, Seth Erfurt and MFEK Authors
 Copyright (C) 2007 Raph Levien
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
