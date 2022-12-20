@@ -26,7 +26,7 @@ pub struct BezierContext<T> {
     pub curve_fn: fn(&mut Self, f64, f64, f64, f64, f64, f64) -> (),
     // knot_idx
     pub mark_knot_fn: fn(&mut Self, usize) -> (),
-    pub data: Option<T>,
+    pub data: T,
 }
 
 impl<T> BezierContext<T> {
@@ -45,14 +45,14 @@ impl<T> BezierContext<T> {
     }
 }
 
-impl<T> Default for BezierContext<T> {
+impl<T> Default for BezierContext<T> where T: Default {
     fn default() -> Self {
         Self {
             move_fn: |_, _, _, _| {},
             line_fn: |_, _, _| {},
             curve_fn: |_, _, _, _, _, _, _| {},
             mark_knot_fn: |_, _| {},
-            data: None,
+            data: Default::default(),
         }
     }
 }
@@ -714,10 +714,10 @@ pub fn get_knot_th(s: &[SpiroSegment], i: isize) -> f64 {
 
 pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
     let path_len = path.len().try_into().unwrap();
-    let mut ctx: BezierContext<Vec<Operation>> = BezierContext::new();
+    let mut ctx: BezierContext<Vec<Operation>> = BezierContext::<Vec<Operation>>::new();
     let mut segs = setup_path(path);
     solve_spiro(&mut segs, path_len);
 
     spiro_to_bpath(&mut segs, path_len, &mut ctx);
-    ctx.data.unwrap_or(vec![])
+    ctx.data
 }
