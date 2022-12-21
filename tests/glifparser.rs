@@ -13,7 +13,7 @@ fn test() {
     (ctx.start)(&mut ctx);
     let path = test_data!();
     let mut segs = setup_path(&path);
-    solve_spiro(&mut segs, path.len());
+    solve_spiro(&mut segs);
     spiro_to_bpath(&mut segs, path.len(), &mut ctx);
     (ctx.end)(&mut ctx);
     let outline: glifparser::Outline<()> = ctx.data.ops_path.to_outline();

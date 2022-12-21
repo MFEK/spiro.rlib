@@ -1,5 +1,8 @@
+//! Provides a [`BezierContext`] that writes PostScript code to an [`io::Write`].
+
 use crate::BezierContext;
-use std::io::{Result, Write};
+use io::{Result, Write};
+use std::io;
 
 pub type PostScriptBezierContext<'a, W, R> = BezierContext<PostScriptEmitter<&'a mut Box<W>>, R>;
 pub struct PostScriptEmitter<W: Write>(pub W);

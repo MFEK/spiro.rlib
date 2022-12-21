@@ -1,4 +1,5 @@
-//! Provides a [`BezierContext`] that builds up a [`PenOperationsContour`].
+//! Provides a [`BezierContext`] that builds up a [`glifparser::outline::PenOperationsPath`] (via
+//! [`BezCtxGpPenOpsData`]).
 //!
 //! Note: If compiled with `default` (`log`) feature, [`log::trace`] is active.
 
@@ -9,11 +10,12 @@ use glifparser::point::{GlifPoint, PointType as GpPointType};
 use crate::bezctx_oplist::trace;
 use crate::BezierContext;
 
+/// Data built up by this [`BezierContext`].
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BezCtxGpPenOpsData {
     ops: PenOperationsContour,
     pub ops_path: PenOperationsPath,
-    pub knots: Vec<Vec<usize>>,
+    pub knots: Vec<usize>,
     must_close: bool,
 }
 
@@ -42,10 +44,7 @@ pub fn curve_to(ctx: &mut BezierContext<BezCtxGpPenOpsData, ()>, x1: f64, y1: f6
     trace!("Spiro callback: C {}, {}, {}, {}, {}, {} ", x1, y1, x2, y2, x3, y3);
 }
 pub fn mark_knot(ctx: &mut BezierContext<BezCtxGpPenOpsData, ()>, knot_idx: usize) {
-    if ctx.data.knots.is_empty() {
-        ctx.data.knots.push(vec![]);
-    }
-    ctx.data.knots.last_mut().unwrap().push(knot_idx);
+    ctx.data.knots.push(knot_idx);
     trace!("Spiro callback: KNOT {}", knot_idx);
 }
 pub fn end(ctx: &mut BezierContext<BezCtxGpPenOpsData, ()>) {
