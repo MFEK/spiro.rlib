@@ -5,7 +5,7 @@ mod data;
 
 use glifparser::outline::ToOutline as _;
 
-use spiro_inner::*;
+use spiro::*;
 
 #[test]
 fn test() {

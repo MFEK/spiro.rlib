@@ -1,7 +1,7 @@
 #[macro_use]
 mod data;
 
-use spiro_inner::*;
+use spiro::*;
 
 const TEST_ITERATIONS: usize = 1_000;
 

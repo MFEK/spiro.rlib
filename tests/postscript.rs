@@ -1,7 +1,7 @@
 #[macro_use]
 mod data;
 
-use spiro_inner::*;
+use spiro::*;
 use std::str;
 
 #[test]

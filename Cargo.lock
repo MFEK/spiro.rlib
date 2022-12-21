@@ -242,8 +242,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fed41fc1a24994d044e6db6935e69511a1153b52c15eb42493b26fa87feba0"
 
 [[package]]
-name = "spiro-inner"
-version = "0.1.0"
+name = "spiro"
+version = "1.0.0"
 dependencies = [
  "glifparser",
  "log",

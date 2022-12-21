@@ -1,12 +1,12 @@
 [package]
-name = "spiro-inner"
-version = "0.1.0"
+name = "spiro"
+version = "1.0.0"
 authors = ["Fredrick Brennan <copypaste@kittens.ph>", "Seth Erfurt <seth@ske.moe>", "Raph Levien <raph.levien@gmail.com>", "MFEK Authors"]
 edition = "2021"
 license = "Apache-2.0"
 keywords = ["spiro", "curve-conversion", "c2rust"]
 description = "Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited"
-repository = "https://github.com/MFEK/spiro-inner.rlib"
+repository = "https://github.com/MFEK/spiro.rlib"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
