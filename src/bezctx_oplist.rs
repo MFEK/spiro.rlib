@@ -5,8 +5,9 @@
 use crate::BezierContext;
 /// Create a list of Bézier operations suitable for SVG etc
 #[cfg(feature = "log")]
-use log::trace;
+pub use log::trace;
 #[cfg(not(feature = "log"))]
+#[macro_export]
 macro_rules! trace {
     ($($arg:tt)*) => {}; // noop
 }
@@ -48,6 +49,8 @@ impl BezierContext<Vec<Operation>, ()> {
             line_fn: line_to,
             curve_fn: curve_to,
             mark_knot_fn: mark_knot,
+            start: |_| {},
+            end: |_| {},
             data: Vec::new(),
         }
     }

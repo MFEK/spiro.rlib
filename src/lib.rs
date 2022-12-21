@@ -13,7 +13,6 @@
 //! a brand new implementation. Overall I think it turned out okay, could definitely be better if
 //! someone wants to contribute.
 
-use std::any::Any;
 use std::convert::TryInto as _;
 
 pub mod bezctx_oplist;
@@ -21,45 +20,65 @@ pub mod bezctx_ps;
 use bezctx_oplist::Operation;
 
 #[derive(Copy, Clone)]
-pub struct BezierContext<T, A>
-where
-    A: Any,
-{
+pub struct BezierContext<T, A> {
     pub move_fn: fn(&mut Self, f64, f64, bool) -> A,
     pub line_fn: fn(&mut Self, f64, f64) -> A,
     pub curve_fn: fn(&mut Self, f64, f64, f64, f64, f64, f64) -> A,
     // knot_idx
     pub mark_knot_fn: fn(&mut Self, usize) -> A,
+    pub start: fn(&mut Self) -> A,
+    pub end: fn(&mut Self) -> A,
     pub data: T,
 }
 
-impl<T, A: Any> BezierContext<T, A> {
-    pub fn move_to(&mut self, x: f64, y: f64, is_open: bool) {
-        (self.move_fn)(self, x, y, is_open);
+impl<T, A> BezierContext<T, A> {
+    pub fn move_to(&mut self, x: f64, y: f64, is_open: bool) -> A {
+        (self.move_fn)(self, x, y, is_open)
     }
-    pub fn line_to(&mut self, x: f64, y: f64) {
-        (self.line_fn)(self, x, y);
+    pub fn line_to(&mut self, x: f64, y: f64) -> A {
+        (self.line_fn)(self, x, y)
     }
     /// SVG semantics
-    pub fn curve_to(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, x3: f64, y3: f64) {
-        (self.curve_fn)(self, x1, y1, x2, y2, x3, y3);
+    pub fn curve_to(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, x3: f64, y3: f64) -> A {
+        (self.curve_fn)(self, x1, y1, x2, y2, x3, y3)
     }
-    pub fn mark_knot(&mut self, knot_idx: usize) {
-        (self.mark_knot_fn)(self, knot_idx);
+    pub fn mark_knot(&mut self, knot_idx: usize) -> A {
+        (self.mark_knot_fn)(self, knot_idx)
+    }
+    /// Start / end of run
+    pub fn start(&mut self) -> A {
+        (self.start)(self)
+    }
+    pub fn end(&mut self) -> A {
+        (self.end)(self)
     }
 }
 
-impl<T> Default for BezierContext<T, ()>
+impl<T, A> BezierContext<T, A> {
+    pub fn run_spiro(&mut self, path: &[SpiroCP]) -> &mut T {
+        let mut segs = setup_path(path);
+        solve_spiro(&mut segs, path.len());
+        self.start();
+        spiro_to_bpath(&mut segs, path.len(), self);
+        self.end();
+        &mut self.data
+    }
+}
+
+impl<T, A> Default for BezierContext<T, A>
 where
     T: Default,
+    A: Default,
 {
     fn default() -> Self {
         Self {
-            move_fn: |_, _, _, _| {},
-            line_fn: |_, _, _| {},
-            curve_fn: |_, _, _, _, _, _, _| {},
-            mark_knot_fn: |_, _| {},
-            data: Default::default(),
+            start: |_| A::default(),
+            move_fn: |_, _, _, _| A::default(),
+            line_fn: |_, _, _| A::default(),
+            curve_fn: |_, _, _, _, _, _, _| A::default(),
+            mark_knot_fn: |_, _| A::default(),
+            end: |_| A::default(),
+            data: T::default(),
         }
     }
 }
@@ -232,7 +251,7 @@ pub fn compute_ends(ks: [f64; 4], ends: &mut [[f64; 4]; 2], seg_ch: f64) -> f64 
     return l;
 }
 
-pub fn compute_pderivs(s: &SpiroSegment, ends: &mut [[f64; 4]; 2], derivs: &mut [[[f64; 4]; 2]; 4], jinc: isize) {
+pub fn compute_pderivs(s: &SpiroSegment, ends: &mut [[f64; 4]; 2], derivs: &mut [[[f64; 4]; 2]; 4], jinc: usize) {
     let recip_d: f64 = 2e6;
     let delta: f64 = 1.0 / recip_d;
     let mut try_ks: [f64; 4] = [0.; 4];
@@ -241,7 +260,7 @@ pub fn compute_pderivs(s: &SpiroSegment, ends: &mut [[f64; 4]; 2], derivs: &mut 
     let mut j;
     let mut k;
     compute_ends(s.ks, ends, s.seg_ch);
-    while (i as isize) < jinc {
+    while i < jinc + 1 {
         j = 0;
         while j < 4 {
             try_ks[j] = s.ks[j];
@@ -318,11 +337,11 @@ pub fn setup_path(src: &[SpiroCP]) -> Vec<SpiroSegment> {
     r
 }
 
-pub fn bandec11(m: &mut [BandMath], perm: &mut [isize], n: isize) {
-    let mut i: isize = 0;
+pub fn bandec11(m: &mut [BandMath], perm: &mut [usize], n: usize) {
+    let mut i: usize = 0;
     let mut j;
-    let mut k: isize = 0;
-    let mut l: isize = 5;
+    let mut k: usize = 0;
+    let mut l: usize = 5;
     /* pack top triangle to the left. */
     while i < 5 {
         j = 0;
@@ -337,7 +356,7 @@ pub fn bandec11(m: &mut [BandMath], perm: &mut [isize], n: isize) {
         i += 1
     }
     while k < n {
-        let mut pivot: isize = k;
+        let mut pivot: usize = k;
         let mut pivot_val: f64 = m[k as usize].a[0];
         if l < n {
             l += 1
@@ -380,10 +399,10 @@ pub fn bandec11(m: &mut [BandMath], perm: &mut [isize], n: isize) {
     }
 }
 
-pub fn banbks11(m: &[BandMath], perm: &[isize], v: &mut [f64], n: isize) {
-    let mut i;
-    let mut k: isize = 0;
-    let mut l: isize = 5;
+pub fn banbks11(m: &[BandMath], perm: &[usize], v: &mut [f64], n: usize) {
+    let mut i: usize;
+    let mut k: usize = 0;
+    let mut l: usize = 5;
     /* forward substitution */
     while k < n {
         i = perm[k as usize];
@@ -405,7 +424,7 @@ pub fn banbks11(m: &[BandMath], perm: &[isize], v: &mut [f64], n: isize) {
     /* back substitution */
     l = 1;
     i = n - 1;
-    while i >= 0 {
+    loop {
         let mut x: f64 = v[i as usize];
         k = 1;
         while k < l {
@@ -416,11 +435,14 @@ pub fn banbks11(m: &[BandMath], perm: &[isize], v: &mut [f64], n: isize) {
         if l < 11 {
             l += 1
         }
+        if i == 0 {
+            break;
+        }
         i -= 1
     }
 }
 
-pub fn compute_jinc(ty0: char, ty1: char) -> isize {
+pub fn compute_jinc(ty0: char, ty1: char) -> usize {
     if ty0 == 'o' || ty1 == 'o' || ty0 == ']' || ty1 == '[' {
         return 4;
     } else if ty0 == 'c' && ty1 == 'c' {
@@ -432,36 +454,46 @@ pub fn compute_jinc(ty0: char, ty1: char) -> isize {
     };
 }
 
-pub fn count_vec(s: &[SpiroSegment], nseg: isize) -> isize {
+pub fn count_vec(s: &[SpiroSegment], nseg: usize) -> usize {
     let mut i = 0;
-    let mut n: isize = 0;
-    while i < nseg as usize {
+    let mut n = 0;
+    while i < nseg {
         n += compute_jinc(s[i].ty, s[i + 1].ty);
         i += 1
     }
     return n;
 }
 
-pub fn add_mat_line(m: &mut [BandMath], v: &mut [f64], derivs: &mut [f64], x: f64, y: f64, j: isize, jj: isize, jinc: isize, nmat: isize) {
-    let mut k: isize = 0;
-    if jj >= 0 {
-        let joff: isize = (j + 5 - jj + nmat) % nmat;
+pub fn add_mat_line(
+    m: &mut [BandMath],
+    v: &mut [f64],
+    derivs: &mut [f64],
+    x: f64,
+    y: f64,
+    j: usize,
+    jj: Option<usize>,
+    jinc: usize,
+    nmat: usize,
+) {
+    let mut k: usize = 0;
+    if let (Some(jj),) = (jj,) {
+        let joff: usize = (j + 5 - jj + nmat) % nmat;
         v[jj as usize] += x;
-        while k < jinc {
+        while k <= jinc {
             m[jj as usize].a[(joff + k) as usize] += y * derivs[k as usize];
             k += 1
         }
     };
 }
 
-pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [isize], v: &mut [f64], n: isize) -> f64 {
+pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [usize], v: &mut [f64], n: usize) -> f64 {
     let cyclic = s[0].ty != '{' && s[0].ty != 'v';
-    let mut i: isize = 0;
-    let mut j: isize;
-    let mut jj: isize;
-    let nmat: isize = count_vec(s, n);
+    let mut i: usize = 0;
+    let mut j: usize;
+    let mut jj: usize;
+    let nmat: usize = count_vec(s, n);
     let mut norm: f64;
-    let n_invert: isize;
+    let n_invert: usize;
     while i < nmat {
         v[i as usize] = 0.0;
         j = 0;
@@ -488,68 +520,68 @@ pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [isize]
     while i < n {
         let ty0: char = s[i as usize].ty;
         let ty1: char = s[i as usize + 1].ty;
-        let jinc: isize = compute_jinc(ty0, ty1);
+        let jinc: usize = compute_jinc(ty0, ty1);
         let th: f64 = s[i as usize].bend_th;
         let mut ends: [[f64; 4]; 2] = [[0.; 4]; 2];
         let mut derivs: [[[f64; 4]; 2]; 4] = [[[0.; 4]; 2]; 4];
-        let mut jthl: isize = -1;
-        let mut jk0l: isize = -1;
-        let mut jk1l: isize = -1;
-        let mut jk2l: isize = -1;
-        let mut jthr: isize = -1;
-        let mut jk0r: isize = -1;
-        let mut jk1r: isize = -1;
-        let mut jk2r: isize = -1;
+        let mut jthl: Option<usize> = None;
+        let mut jk0l: Option<usize> = None;
+        let mut jk1l: Option<usize> = None;
+        let mut jk2l: Option<usize> = None;
+        let mut jthr: Option<usize> = None;
+        let mut jk0r: Option<usize> = None;
+        let mut jk1r: Option<usize> = None;
+        let mut jk2r: Option<usize> = None;
         compute_pderivs(&mut s[i as usize], &mut ends, &mut derivs, jinc);
         /* constraints crossing left */
         if ty0 == 'o' || ty0 == 'c' || ty0 == '[' || ty0 == ']' {
             let fresh0 = jj;
             jj = jj + 1;
-            jthl = fresh0;
+            jthl = Some(fresh0);
             jj %= nmat;
             let fresh1 = jj;
             jj = jj + 1;
-            jk0l = fresh1
+            jk0l = Some(fresh1);
         }
         if ty0 == 'o' {
             jj %= nmat;
             let fresh2 = jj;
             jj = jj + 1;
-            jk1l = fresh2;
+            jk1l = Some(fresh2);
             let fresh3 = jj;
             jj = jj + 1;
-            jk2l = fresh3
+            jk2l = Some(fresh3);
         }
         /* constraints on left */
         if (ty0 == '[' || ty0 == 'v' || ty0 == '{' || ty0 == 'c') && jinc == 4 {
             if ty0 != 'c' {
                 let fresh4 = jj;
                 jj = jj + 1;
-                jk1l = fresh4
+                jk1l = Some(fresh4);
             }
             let fresh5 = jj;
             jj = jj + 1;
-            jk2l = fresh5
+            jk2l = Some(fresh5);
         }
         /* constraints on right */
         if (ty1 == ']' || ty1 == 'v' || ty1 == '}' || ty1 == 'c') && jinc == 4 {
             if ty1 != 'c' {
                 let fresh6 = jj;
                 jj = jj + 1;
-                jk1r = fresh6
+                jk1r = Some(fresh6);
             }
             let fresh7 = jj;
             jj = jj + 1;
-            jk2r = fresh7
+            jk2r = Some(fresh7);
         }
         /* constraints crossing right */
         if ty1 == 'o' || ty1 == 'c' || ty1 == '[' || ty1 == ']' {
-            jthr = jj;
-            jk0r = (jj + 1) % nmat
+            jthr = Some(jj);
+            jk0r = Some((jj + 1) % nmat);
         }
         if ty1 == 'o' {
-            jk1r = (jj + 2) % nmat;
-            jk2r = (jj + 3) % nmat
+            jk1r = Some((jj + 2) % nmat);
+            jk2r = Some((jj + 3) % nmat);
         }
 
         add_mat_line(m, v, &mut derivs[0][0], th - ends[0][0], 1., j, jthl, jinc, nmat);
@@ -583,8 +615,8 @@ pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [isize]
     while i < n {
         let ty0_0: char = s[i as usize].ty;
         let ty1_0: char = s[(i + 1) as usize].ty;
-        let jinc_0: isize = compute_jinc(ty0_0, ty1_0);
-        let mut k: isize = 0;
+        let jinc_0: usize = compute_jinc(ty0_0, ty1_0);
+        let mut k: usize = 0;
         while k < jinc_0 {
             let fresh8 = j;
             j = j + 1;
@@ -598,8 +630,8 @@ pub fn spiro_iter(s: &mut [SpiroSegment], m: &mut [BandMath], perm: &mut [isize]
     return norm;
 }
 
-pub fn solve_spiro(s: &mut [SpiroSegment], nseg: isize) -> isize {
-    let nmat: isize = count_vec(s, nseg);
+pub fn solve_spiro(s: &mut [SpiroSegment], nseg: usize) -> isize {
+    let nmat: usize = count_vec(s, nseg);
     let mut n_alloc: usize = nmat.try_into().unwrap();
     let mut norm: f64;
     let mut i: isize;
@@ -629,7 +661,7 @@ pub fn solve_spiro(s: &mut [SpiroSegment], nseg: isize) -> isize {
     return 0;
 }
 
-pub fn spiro_seg_to_bpath<T, A: Any>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, bc: &mut BezierContext<T, A>, depth: isize) {
+pub fn spiro_seg_to_bpath<T, A>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1: f64, bc: &mut BezierContext<T, A>, depth: isize) {
     let bend: f64 = (ks[0]).abs() + (0.5 * ks[1]).abs() + (0.125 * ks[2]).abs() + (1.0 / 48. * ks[3]).abs();
     if bend == 0. {
         bc.line_to(x1, y1);
@@ -688,12 +720,12 @@ pub fn spiro_seg_to_bpath<T, A: Any>(ks: [f64; 4], x0: f64, y0: f64, x1: f64, y1
     };
 }
 
-pub fn spiro_to_bpath<T, A: Any>(s: &[SpiroSegment], n: isize, bc: &mut BezierContext<T, A>) {
+pub fn spiro_to_bpath<T, A>(s: &[SpiroSegment], n: usize, bc: &mut BezierContext<T, A>) {
     if n == 0 {
         return;
     }
     let mut i = 0;
-    let nsegs: isize = if s[(n - 1) as usize].ty == '}' { (n) - 1 } else { n };
+    let nsegs: usize = if s[(n - 1) as usize].ty == '}' { (n) - 1 } else { n };
     while i < nsegs {
         let x0: f64 = s[i as usize].x;
         let y0: f64 = s[i as usize].y;
@@ -720,11 +752,12 @@ pub fn get_knot_th(s: &[SpiroSegment], i: isize) -> f64 {
 }
 
 pub fn run_spiro(path: &mut [SpiroCP]) -> Vec<Operation> {
-    let path_len = path.len().try_into().unwrap();
+    let path_len = path.len();
     let mut ctx = BezierContext::<Vec<Operation>, ()>::new();
     let mut segs = setup_path(path);
+    ctx.start();
     solve_spiro(&mut segs, path_len);
-
     spiro_to_bpath(&mut segs, path_len, &mut ctx);
+    ctx.end();
     ctx.data
 }
