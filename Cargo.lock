@@ -243,7 +243,7 @@ checksum = "97fed41fc1a24994d044e6db6935e69511a1153b52c15eb42493b26fa87feba0"
 
 [[package]]
 name = "spiro"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "glifparser",
  "log",

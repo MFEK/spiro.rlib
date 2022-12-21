@@ -1,4 +1,4 @@
-//! # `spiro.rlib` v1.0.0 (⏫︎2022-12-20)
+//! # `spiro.rlib` v1.0.1 (⏫︎2022-12-20)
 //!
 //! - Copyright (C) 2020–2022 Fredrick R. Brennan, Seth Erfurt and MFEK Authors
 //! - Copyright (C) 2007 Raph Levien
@@ -17,9 +17,10 @@
 //! ## Usage example
 //!
 //! ```rust
-//! use spiro::BezierContext;
+//! use spiro::{BezCtxGpPenOpsData, BezierContext};
 //! use glifparser::{Glif, outline::ToOutline as _};
 //!
+//! let mut ctx = BezierContext::<BezCtxGpPenOpsData, ()>::new();
 //! let path = test_data!();
 //! ctx.run_spiro(&path);
 //! let mut glif = Glif::<()>::new();

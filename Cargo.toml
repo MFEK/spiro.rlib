@@ -1,6 +1,6 @@
 [package]
 name = "spiro"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Fredrick Brennan <copypaste@kittens.ph>", "Seth Erfurt <seth@ske.moe>", "Raph Levien <raph.levien@gmail.com>", "MFEK Authors"]
 edition = "2021"
 license = "Apache-2.0"

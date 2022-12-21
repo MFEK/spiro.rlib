@@ -1,4 +1,4 @@
-# `spiro.rlib` v1.0.0 (⏫︎2022-12-20)
+# `spiro.rlib` v1.0.1 (⏫︎2022-12-20)
 
 This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited by Fredrick R. Brennan (@ctrlcctrlv).
 
@@ -13,9 +13,10 @@ This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Ru
 ## Usage example
 
 ```rust
-use spiro::BezierContext;
+use spiro::{BezCtxGpPenOpsData, BezierContext};
 use glifparser::{Glif, outline::ToOutline as _};
 
+let mut ctx = BezierContext::<BezCtxGpPenOpsData, ()>::new();
 let path = test_data!();
 ctx.run_spiro(&path);
 let mut glif = Glif::<()>::new();
