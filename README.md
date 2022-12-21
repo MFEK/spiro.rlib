@@ -1,6 +1,27 @@
-# `spiro.rlib` v1.0.0 (⏫2022-12-20)
+# `spiro.rlib` v1.0.0 (⏫︎2022-12-20)
 
 This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited by Fredrick R. Brennan (@ctrlcctrlv).
+
+## Features
+
+* Full support for all Spiro point types.
+* No more unsafe code as of v1.0.0 (thanks Seth).
+* Optional [`glifparser`](https://github.com/MFEK/glifparser.rlib) support, through which (`ToKurbo` on an `Outline` convertible from a `PenOperationsPath`) one can also get Raph Levien's [`kurbo`](https://docs.rs/kurbo) working.
+  * This provides `.glif` output. See § «Usage example».
+* Easy PostScript output context.
+
+## Usage example
+
+```rust
+use spiro::BezierContext;
+use glifparser::{Glif, outline::ToOutline as _};
+
+let path = test_data!();
+ctx.run_spiro(&path);
+let mut glif = Glif::<()>::new();
+glif.outline = Some(ctx.data.ops_path.to_outline());
+eprintln!("{}", glifparser::glif::write(&glif).unwrap());
+```
 
 ## License (this edit of C2Rust output)
 ```

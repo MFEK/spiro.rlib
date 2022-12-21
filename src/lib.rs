@@ -1,4 +1,4 @@
-//! # spiro-rs 1.0.0
+//! # `spiro.rlib` v1.0.0 (⏫︎2022-12-20)
 //!
 //! - Copyright (C) 2020–2022 Fredrick R. Brennan, Seth Erfurt and MFEK Authors
 //! - Copyright (C) 2007 Raph Levien
@@ -13,6 +13,19 @@
 //! are really beyond my understanding, and I felt that it'd be way too hard for me to come up with
 //! a brand new implementation. Overall I think it turned out okay, could definitely be better if
 //! someone wants to contribute.
+//!
+//! ## Usage example
+//!
+//! ```rust
+//! use spiro::BezierContext;
+//! use glifparser::{Glif, outline::ToOutline as _};
+//!
+//! let path = test_data!();
+//! ctx.run_spiro(&path);
+//! let mut glif = Glif::<()>::new();
+//! glif.outline = Some(ctx.data.ops_path.to_outline());
+//! eprintln!("{}", glifparser::glif::write(&glif).unwrap());
+//! ```
 
 use std::convert::TryInto as _;
 
