@@ -19,6 +19,11 @@ pub mod bezctx_oplist;
 pub mod bezctx_ps;
 use bezctx_oplist::Operation;
 
+#[cfg(feature = "glifparser")]
+pub mod bezctx_oplist_glifparser;
+#[cfg(feature = "glifparser")]
+pub use bezctx_oplist_glifparser::BezCtxGpPenOpsData;
+
 #[derive(Copy, Clone)]
 pub struct BezierContext<T, A> {
     pub move_fn: fn(&mut Self, f64, f64, bool) -> A,
