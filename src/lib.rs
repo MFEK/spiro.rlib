@@ -1,32 +1,4 @@
-//! # `spiro.rlib` v1.0.1 (⏫︎2022-12-20)
-//!
-//! - Copyright (C) 2020–2022 Fredrick R. Brennan, Seth Erfurt and MFEK Authors
-//! - Copyright (C) 2007 Raph Levien
-//!
-//! Licensed under same license as Raph Levien's libspiro, upon which this code is based. This code
-//! was transpiled with C2Rust, which I then spent hours and hours cleaning up, removing the
-//! dependency on libc, and removing all of the unsafe code.
-//!
-//! For the original comment by Mr. Levien in spiro.c, see comment above struct [`SpiroSegment`].
-//!
-//! I chose to implement it this way, with a transpiler, as the complex mathematics involved here
-//! are really beyond my understanding, and I felt that it'd be way too hard for me to come up with
-//! a brand new implementation. Overall I think it turned out okay, could definitely be better if
-//! someone wants to contribute.
-//!
-//! ## Usage example
-//!
-//! ```rust
-//! use spiro::{BezCtxGpPenOpsData, BezierContext};
-//! use glifparser::{Glif, outline::ToOutline as _};
-//!
-//! let mut ctx = BezierContext::<BezCtxGpPenOpsData, ()>::new();
-//! let path = test_data!();
-//! ctx.run_spiro(&path);
-//! let mut glif = Glif::<()>::new();
-//! glif.outline = Some(ctx.data.ops_path.to_outline());
-//! eprintln!("{}", glifparser::glif::write(&glif).unwrap());
-//! ```
+#![doc = include_str!("../README.md")]
 
 use std::convert::TryInto as _;
 

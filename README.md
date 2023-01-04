@@ -1,4 +1,4 @@
-# `spiro.rlib` v1.0.1 (⏫︎2022-12-20)
+# `spiro.rlib` v1.0.2 (⏫︎2023-01-04)
 
 This is Raph Levien's C implementation of Spiro in pure Rust, transpiled by C2Rust and then heavily edited by Fredrick R. Brennan (@ctrlcctrlv).
 
@@ -25,7 +25,7 @@ eprintln!("{}", glifparser::glif::write(&glif).unwrap());
 ```
 
 ## License (this edit of C2Rust output)
-```
+```text
 Copyright (C) 2020–2022 Fredrick R. Brennan, Seth Erfurt and MFEK Authors
 Copyright (C) 2007 Raph Levien
 
@@ -42,7 +42,7 @@ specific language governing permissions and limitations under the License.
 ```
 
 ## License (original C code)
-```
+``text
 Copyright (C) 2007 Raph Levien
 
 Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
